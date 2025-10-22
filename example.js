@@ -45,11 +45,12 @@ async function exampleBasicOperations() {
     // 3. Select card and read serial number
     console.log('Place card on reader...');
     const serial = reader.selectCard();
+    await delay(10000)
     if (serial) {
       console.log(`✓ Card detected! Serial: ${serial}\n`);
       reader.setLED(LightColor.GREEN_LED);
       reader.beep(50);
-      await delay(200);
+      await delay(1000);
       reader.setLED(LightColor.CLOSE_LED);
     } else {
       console.log('✗ No card detected\n');

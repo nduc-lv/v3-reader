@@ -6,6 +6,17 @@
 const ffi = require('ffi-napi');
 const ref = require('ref-napi');
 const ArrayType = require('ref-array-di')(ref);
+const path = require("path");
+const os = require("os");
+
+// Set DLL search path before loading the library
+const dllDir = __dirname;
+
+// On Windows, add the current directory to the DLL search path
+if (os.platform() === 'win32') {
+  // This tells Windows to search the current directory for dependent DLLs
+  process.env.PATH = dllDir + path.delimiter + process.env.PATH;
+}
 
 // Define types
 const ushort = ref.types.ushort;
@@ -20,7 +31,10 @@ const BytePointer = ref.refType(byte);
  * MasterRD.dll function bindings
  * All functions return 0 on success
  */
-const MasterRD = ffi.Library('MasterRD.dll', {
+console.log('Loading MasterRD from:', path.join(__dirname, 'MasterRD_x64.dll'));
+console.log('Current PATH:', process.env.PATH);
+
+const MasterRD = ffi.Library(path.join(__dirname, 'MasterRD_x64.dll'), {
   /**
    * Open serial port
    * @param {ushort} port - COM port number
@@ -34,50 +48,6 @@ const MasterRD = ffi.Library('MasterRD.dll', {
    * @returns {int} 0 on success
    */
   'rf_ClosePort': [int, []],
-
-  /**
-   * Select card and read serial number (S70 card)
-   * @param {byte} icdev - Device number (default: 0)
-   * @param {Buffer} pData - Buffer to receive card serial data
-   * @param {Buffer} retLen - Pointer to byte that receives data length
-   * @returns {int} 0 on success
-   */
-  'rf_s70_select': [int, [byte, ByteArray, BytePointer]],
-
-  /**
-   * Read block using specified key (S70)
-   * @param {byte} icdev - Device number (default: 0)
-   * @param {byte} ReadMode - Read mode (0: blocks 0-31, 1: blocks 32-38, 2: all)
-   * @param {byte} address - Block address to read
-   * @param {byte} KeyMode - Key mode (0x60: Key A, 0x61: Key B)
-   * @param {Buffer} Key - 6-byte key
-   * @param {Buffer} pData - Buffer to receive block data
-   * @param {Buffer} retLen - Pointer to ulong that receives data length
-   * @returns {int} 0 on success
-   */
-  'rf_s70_read': [int, [byte, byte, byte, byte, ByteArray, ByteArray, UlongPointer]],
-
-  /**
-   * Write block using specified key (S70)
-   * @param {byte} icdev - Device number (default: 0)
-   * @param {byte} WriteMode - Write mode (0: blocks 0-31, 1: blocks 32-38, 2: all)
-   * @param {byte} address - Block address to write
-   * @param {byte} KeyMode - Key mode (0x60: Key A, 0x61: Key B)
-   * @param {Buffer} Key - 6-byte key
-   * @param {Buffer} pData - 16-byte data to write
-   * @param {ulong} retLen - Length of data to write
-   * @returns {int} 0 on success
-   */
-  'rf_s70_write': [int, [byte, byte, byte, byte, ByteArray, ByteArray, ulong]],
-
-  /**
-   * Write key to reader's EEPROM (key group storage)
-   * @param {byte} icdev - Device number (default: 0)
-   * @param {byte} block - Key group index (0-31)
-   * @param {Buffer} Key - 6-byte key data
-   * @returns {int} 0 on success
-   */
-  'rf_M1_WriteKeyToEE2': [int, [byte, byte, ByteArray]],
 
   /**
    * Authenticate block with key stored in reader (M1 card)
@@ -97,7 +67,7 @@ const MasterRD = ffi.Library('MasterRD.dll', {
    * @param {Buffer} pLen - Pointer to ulong that receives data length
    * @returns {int} 0 on success
    */
-  'rf_M1_read': [int, [byte, byte, ByteArray, UlongPointer]],
+  'rf_M1_read': [int, [byte, byte, BytePointer, UlongPointer]],
 
   /**
    * Write block using key group (must call rf_M1_authentication1 or rf_M1_authentication2 first)
@@ -106,16 +76,7 @@ const MasterRD = ffi.Library('MasterRD.dll', {
    * @param {Buffer} pData - 16-byte data to write
    * @returns {int} 0 on success
    */
-  'rf_M1_write': [int, [byte, byte, ByteArray]],
-
-  /**
-   * Select M1 card and read serial number
-   * @param {byte} icdev - Device number (default: 0)
-   * @param {Buffer} pData - Buffer to receive card serial data
-   * @param {Buffer} pLen - Pointer to ulong that receives data length
-   * @returns {int} 0 on success
-   */
-  'rf_select1': [int, [byte, ByteArray, UlongPointer]],
+  'rf_M1_write': [int, [byte, byte, BytePointer]],
 
   /**
    * Authenticate M1 card block with direct key
@@ -125,7 +86,7 @@ const MasterRD = ffi.Library('MasterRD.dll', {
    * @param {Buffer} key - 6-byte key
    * @returns {int} 0 on success
    */
-  'rf_M1_authentication2': [int, [byte, byte, byte, ByteArray]],
+  'rf_M1_authentication2': [int, [byte, byte, byte, BytePointer]],
 
   /**
    * Control LED lights on reader

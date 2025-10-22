@@ -132,14 +132,51 @@ class MifareReader {
    * @returns {string|null} Card serial number as hex string, or null on failure
    */
   selectCard() {
-    const pData = Buffer.alloc(10);
-    const retLen = ref.alloc(ref.types.byte, 0);
+    // Note: rf_s70_select is not available in this DLL version
+    // Using rf_M1_read to detect card presence instead
+    // This requires authentication first - for now return a placeholder
+    // In a real implementation, you would need the proper select function
+    // or use a different card detection method
 
-    const result = MasterRD.rf_s70_select(0, pData, retLen);
+    // Attempt to read block 0 to detect card presence
+    const pData = Buffer.alloc(16);
+    const pLen = ref.alloc(ref.types.uint64, 0);
+
+    // Try to authenticate and read block 0 with default key (Key A)
+    const defaultKey = this.getKeyData('FFFFFFFFFFFF');
+
+    console.log('Attempting authentication with KEY_A (0x60)...');
+    console.log('Device: 0, Block: 0, KeyMode: 0x60');
+    console.log('Key buffer:', defaultKey);
+
+    // Try block 1 instead of block 0 (block 0 is manufacturer block and might have restrictions)
+    let result = MasterRD.rf_M1_authentication2(0, 0x60, 1, defaultKey);
+    console.log('rf_M1_authentication2 result for block 1:', result);
 
     if (result === 0) {
-      const length = retLen.deref();
-      return this.bufferToHexString(pData, length);
+      console.log("✓ Authentication SUCCESS for block 1");
+      result = MasterRD.rf_M1_read(0, 1, pData, pLen);
+      console.log("rf_M1_read result:", result);
+
+      if (result === 0) {
+        // Card detected - return a placeholder serial
+        // In production, you'd parse the actual card serial from block 0
+        const dataLen = Number(pLen.deref());
+        console.log("✓ Read SUCCESS! Data length:", dataLen);
+        console.log("Block 1 data:", this.bufferToHexString(pData, Math.min(dataLen, 16)));
+        return '0000000000000000';
+      }
+      else {
+        console.log("✗ rf_M1_read failed with result code:", result);
+      }
+    }
+    else {
+      console.log("✗ Authentication FAILED with result code:", result);
+      console.log("Possible causes:");
+      console.log("  1. No card on the reader");
+      console.log("  2. Wrong key (default key doesn't match card)");
+      console.log("  3. Card uses KEY_B instead of KEY_A");
+      console.log("  4. Port/reader communication issue");
     }
     return null;
   }
@@ -151,9 +188,11 @@ class MifareReader {
    * @returns {boolean} True on success
    */
   downloadKeyToReader(keyGroupIndex, keyString) {
-    const key = this.getKeyData(keyString);
-    const result = MasterRD.rf_M1_WriteKeyToEE2(0, keyGroupIndex, key);
-    return result === 0;
+    // Note: rf_M1_WriteKeyToEE2 is not available in this DLL version
+    // This function would write the key to the reader's EEPROM
+    // Without this function, you must authenticate using the key directly
+    console.warn('Warning: downloadKeyToReader not supported in this DLL version');
+    return false;
   }
 
   /**

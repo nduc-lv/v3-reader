@@ -133,52 +133,47 @@ class MifareReader {
    */
   selectCard() {
     // Note: rf_s70_select is not available in this DLL version
-    // Using rf_M1_read to detect card presence instead
-    // This requires authentication first - for now return a placeholder
-    // In a real implementation, you would need the proper select function
-    // or use a different card detection method
+    // Read block 0 to get UID/serial number, then verify by reading block 4
 
-    // Attempt to read block 0 to detect card presence
-    const pData = Buffer.alloc(16);
-    const pLen = ref.alloc(ref.types.uint64, 0);
-
-    // Try to authenticate and read block 0 with default key (Key A)
     const defaultKey = this.getKeyData('FFFFFFFFFFFF');
 
-    console.log('Attempting authentication with KEY_A (0x60)...');
-    console.log('Device: 0, Block: 0, KeyMode: 0x60');
-    console.log('Key buffer:', defaultKey);
+    // Try to read block 0 for UID (might be restricted on some readers)
+    let uid = null;
+    const uidData = Buffer.alloc(16);
+    const uidLen = ref.alloc(ref.types.uint64, 0);
 
-    // Try block 1 instead of block 0 (block 0 is manufacturer block and might have restrictions)
-    let result = MasterRD.rf_M1_authentication2(0, 0x60, 1, defaultKey);
-    console.log('rf_M1_authentication2 result for block 1:', result);
-
+    let result = MasterRD.rf_M1_authentication2(0, 0x60, 0, Buffer.from([0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]));
     if (result === 0) {
-      console.log("✓ Authentication SUCCESS for block 1");
-      result = MasterRD.rf_M1_read(0, 1, pData, pLen);
-      console.log("rf_M1_read result:", result);
-
+      result = MasterRD.rf_M1_read(0, 0, uidData, uidLen);
       if (result === 0) {
-        // Card detected - return a placeholder serial
-        // In production, you'd parse the actual card serial from block 0
-        const dataLen = Number(pLen.deref());
-        console.log("✓ Read SUCCESS! Data length:", dataLen);
-        console.log("Block 1 data:", this.bufferToHexString(pData, Math.min(dataLen, 16)));
-        return '0000000000000000';
-      }
-      else {
-        console.log("✗ rf_M1_read failed with result code:", result);
+        const dataLen = Number(uidLen.deref());
+        uid = this.bufferToHexString(uidData, Math.min(dataLen, 4)); // UID is first 4 bytes
+        console.log(`✓ Card UID: ${uid}`);
       }
     }
     else {
-      console.log("✗ Authentication FAILED with result code:", result);
-      console.log("Possible causes:");
-      console.log("  1. No card on the reader");
-      console.log("  2. Wrong key (default key doesn't match card)");
-      console.log("  3. Card uses KEY_B instead of KEY_A");
-      console.log("  4. Port/reader communication issue");
+      console.log("FAILED TO AUTHEN", result);
     }
-    return null;
+
+    // Now try to read block 4 (where you have data)
+    console.log('\nReading block 4 data...');
+    const blockData = Buffer.alloc(16);
+    const blockLen = ref.alloc(ref.types.uint64, 0);
+
+    result = MasterRD.rf_M1_authentication2(0, 0x60, 4, defaultKey);
+    if (result === 0) {
+      result = MasterRD.rf_M1_read(0, 4, blockData, blockLen);
+      if (result === 0) {
+        const dataLen = Number(blockLen.deref());
+        const hexData = this.bufferToHexString(blockData, Math.min(dataLen, 16));
+        const asciiData = blockData.toString('ascii', 0, Math.min(dataLen, 16)).replace(/\0/g, '');
+
+        console.log(`✓ Block 4 (hex): ${hexData}`);
+        console.log(`✓ Block 4 (ASCII): ${asciiData}`);
+      }
+    }
+
+    return uid;
   }
 
   /**

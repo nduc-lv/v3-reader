@@ -17,9 +17,11 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@serialport/parser-readline": "^13.0.0",
     "ffi-napi": "^4.0.3",
+    "ref-array-di": "^1.2.2",
     "ref-napi": "^3.0.3",
-    "ref-array-di": "^1.2.2"
+    "serialport": "^13.0.0"
   },
   "engines": {
     "node": ">=14.0.0"

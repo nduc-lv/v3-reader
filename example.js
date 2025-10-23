@@ -9,8 +9,8 @@ const { MifareReader, KeyMode, LightColor } = require('./mifare-reader');
 const reader = new MifareReader();
 
 // Default configuration
-const COM_PORT = 3;        // COM3 - adjust to your port
-const BAUD_RATE = 19200;   // Standard baud rate
+const COM_PORT = 5;        // COM3 - adjust to your port
+const BAUD_RATE = 9600;   // Standard baud rate
 const DEFAULT_KEY = 'FFFFFFFFFFFF';  // Factory default key for Mifare cards
 
 async function delay(ms) {

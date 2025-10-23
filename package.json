@@ -1,0 +1,30 @@
+{
+  "name": "mifare-reader-nodejs",
+  "version": "1.0.0",
+  "description": "Node.js implementation of Mifare 1K/4K RFID card reader using MasterRD.dll",
+  "main": "mifare-reader.js",
+  "scripts": {
+    "example": "node example.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "mifare",
+    "rfid",
+    "card-reader",
+    "nfc",
+    "masterrd"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "ffi-napi": "^4.0.3",
+    "ref-napi": "^3.0.3",
+    "ref-array-di": "^1.2.2"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "os": [
+    "win32"
+  ]
+}
